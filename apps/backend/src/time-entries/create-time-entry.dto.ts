@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   Min,
   Max,
+  IsInt,
 } from 'class-validator';
 
 export class CreateTimeEntryDto {
@@ -12,9 +13,9 @@ export class CreateTimeEntryDto {
   @IsNotEmpty()
   date: string;
 
-  @IsString()
-  @IsNotEmpty()
-  project: string;
+  @IsInt()
+  @Min(1)
+  projectId: number;
 
   @IsNumber()
   @Min(0.25)

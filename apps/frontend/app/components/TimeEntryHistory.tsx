@@ -7,6 +7,7 @@ import { format, parseISO } from 'date-fns';
 interface TimeEntry {
   id: number;
   date: string;
+  projectId: number;
   project: string;
   hours: number;
   description: string;

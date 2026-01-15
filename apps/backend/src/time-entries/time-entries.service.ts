@@ -1,38 +1,35 @@
 import { Injectable } from '@nestjs/common';
-import Database from 'better-sqlite3';
+import { db, initSchema } from '../database';
 import { CreateTimeEntryDto } from './create-time-entry.dto';
 import { TimeEntry } from './time-entry.interface';
-import * as path from 'path';
-import * as fs from 'fs';
 
-const dbDir = path.join(process.cwd(), 'data');
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-const dbPath = path.join(dbDir, 'dev.db');
-const db: any = new Database(dbPath);
+type DbRow = {
+  id: number;
+  date: string;
+  project_id: number;
+  project: string;
+  hours: number;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 @Injectable()
 export class TimeEntriesService {
   constructor() {
-    // Ensure database tables exist
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS time_entry (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date DATETIME NOT NULL,
-        project TEXT NOT NULL,
-        hours REAL NOT NULL,
-        description TEXT NOT NULL,
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-      
-      CREATE INDEX IF NOT EXISTS idx_date ON time_entry(date);
-    `);
+    initSchema();
   }
 
   create(createTimeEntryDto: CreateTimeEntryDto): TimeEntry {
-    const { date, project, hours, description } = createTimeEntryDto;
+    const { date, projectId, hours, description } = createTimeEntryDto;
+
+    const projectExists = db
+      .prepare(`SELECT id FROM projects WHERE id = ?`)
+      .get(projectId) as { id: number } | undefined;
+
+    if (!projectExists) {
+      throw new Error('Project not found');
+    }
 
     // Parse date to normalize it (remove time component for comparison)
     const entryDate = new Date(date);
@@ -63,14 +60,14 @@ export class TimeEntriesService {
     }
 
     const insertStmt = db.prepare(`
-      INSERT INTO time_entry (date, project, hours, description, createdAt, updatedAt)
+      INSERT INTO time_entry (date, project_id, hours, description, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     const now = new Date().toISOString();
     const result2 = insertStmt.run(
       dateString,
-      project,
+      projectId,
       hours,
       description,
       now,
@@ -80,18 +77,42 @@ export class TimeEntriesService {
     return this.findById(result2.lastInsertRowid);
   }
 
+  private mapRow(row: DbRow): TimeEntry {
+    return {
+      id: row.id,
+      date: row.date,
+      projectId: row.project_id,
+      project: row.project,
+      hours: row.hours,
+      description: row.description,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
   findAll(): TimeEntry[] {
     const stmt = db.prepare(`
-      SELECT * FROM time_entry ORDER BY date DESC
+      SELECT te.id, te.date, te.project_id, p.name AS project, te.hours, te.description, te.createdAt, te.updatedAt
+      FROM time_entry te
+      JOIN projects p ON p.id = te.project_id
+      ORDER BY te.date DESC
     `);
-    return stmt.all() as TimeEntry[];
+    const rows = stmt.all() as DbRow[];
+    return rows.map((row) => this.mapRow(row));
   }
 
   findById(id: number): TimeEntry {
     const stmt = db.prepare(`
-      SELECT * FROM time_entry WHERE id = ?
+      SELECT te.id, te.date, te.project_id, p.name AS project, te.hours, te.description, te.createdAt, te.updatedAt
+      FROM time_entry te
+      JOIN projects p ON p.id = te.project_id
+      WHERE te.id = ?
     `);
-    return stmt.get(id) as TimeEntry;
+    const row = stmt.get(id) as DbRow | undefined;
+    if (!row) {
+      throw new Error('Time entry not found');
+    }
+    return this.mapRow(row);
   }
 
   findByDate(date: string): TimeEntry[] {
@@ -102,12 +123,14 @@ export class TimeEntriesService {
     dayEnd.setHours(23, 59, 59, 999);
 
     const stmt = db.prepare(`
-      SELECT * FROM time_entry WHERE date >= ? AND date <= ? ORDER BY date DESC
+      SELECT te.id, te.date, te.project_id, p.name AS project, te.hours, te.description, te.createdAt, te.updatedAt
+      FROM time_entry te
+      JOIN projects p ON p.id = te.project_id
+      WHERE te.date >= ? AND te.date <= ?
+      ORDER BY te.date DESC
     `);
-    return stmt.all(
-      entryDate.toISOString(),
-      dayEnd.toISOString(),
-    ) as TimeEntry[];
+    const rows = stmt.all(entryDate.toISOString(), dayEnd.toISOString()) as DbRow[];
+    return rows.map((row) => this.mapRow(row));
   }
 
   remove(id: number): { success: boolean } {

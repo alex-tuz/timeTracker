@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import { format } from 'date-fns';
 
 interface TimeEntry {
   id: number;
   date: string;
+  projectId: number;
   project: string;
   hours: number;
   description: string;
@@ -14,17 +15,22 @@ interface TimeEntry {
   updatedAt: string;
 }
 
+interface Project {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
 interface TimeEntryFormProps {
   onEntryCreated: (entry: TimeEntry) => void;
   apiBaseUrl: string;
+  projects: Project[];
 }
 
-const PROJECTS = ['Viso Internal', 'Client A', 'Client B', 'Personal Development', 'Research'];
-
-export default function TimeEntryForm({ onEntryCreated, apiBaseUrl }: TimeEntryFormProps) {
+export default function TimeEntryForm({ onEntryCreated, apiBaseUrl, projects }: TimeEntryFormProps) {
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
-    project: 'Viso Internal',
+    projectId: projects[0]?.id ?? null,
     hours: 1,
     description: '',
   });
@@ -37,9 +43,15 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl }: TimeEntryF
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'hours' ? parseFloat(value) : value,
+      [name]: name === 'hours' ? parseFloat(value) : name === 'projectId' ? Number(value) : value,
     }));
   };
+
+  useEffect(() => {
+    if (projects.length > 0 && !formData.projectId) {
+      setFormData((prev) => ({ ...prev, projectId: projects[0]?.id ?? null }));
+    }
+  }, [projects, formData.projectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,10 +59,16 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl }: TimeEntryF
     setError(null);
     setSuccess(false);
 
+    if (!formData.projectId) {
+      setError('Please select a project');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.post(`${apiBaseUrl}/time-entries`, {
         date: formData.date,
-        project: formData.project,
+        projectId: formData.projectId,
         hours: formData.hours,
         description: formData.description,
       });
@@ -60,7 +78,7 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl }: TimeEntryF
       // Reset form
       setFormData({
         date: format(new Date(), 'yyyy-MM-dd'),
-        project: 'Viso Internal',
+        projectId: projects[0]?.id ?? null,
         hours: 1,
         description: '',
       });
@@ -111,20 +129,24 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl }: TimeEntryF
           <label htmlFor="project" className="block text-sm font-medium text-gray-700 mb-1">
             Project
           </label>
-          <select
-            id="project"
-            name="project"
-            value={formData.project}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            {PROJECTS.map((project) => (
-              <option key={project} value={project}>
-                {project}
-              </option>
-            ))}
-          </select>
+          {projects.length === 0 ? (
+            <div className="text-sm text-gray-500">No projects available. Please add a project first.</div>
+          ) : (
+            <select
+              id="project"
+              name="projectId"
+              value={formData.projectId ?? ''}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div>
@@ -163,7 +185,7 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl }: TimeEntryF
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || projects.length === 0}
           className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
         >
           {loading ? 'Saving...' : 'Save'}
