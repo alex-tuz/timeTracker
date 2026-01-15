@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsDateString, IsNotEmpty, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsDateString,
+  IsNotEmpty,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class CreateTimeEntryDto {
   @IsDateString()
