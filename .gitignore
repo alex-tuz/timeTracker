@@ -9,3 +9,4 @@ data/
 *.db
 *.tsbuildinfo
 generated/
+.vscode/
