@@ -1,11 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { format } from 'date-fns';
 
+interface TimeEntry {
+  id: number;
+  date: string;
+  project: string;
+  hours: number;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface TimeEntryFormProps {
-  onEntryCreated: (entry: any) => void;
+  onEntryCreated: (entry: TimeEntry) => void;
   apiBaseUrl: string;
 }
 
@@ -57,9 +67,9 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl }: TimeEntryF
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to create time entry';
-      setError(message);
+    } catch (err) {
+      const message = (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to create time entry';
+      setError(typeof message === 'string' ? message : 'Failed to create time entry');
     } finally {
       setLoading(false);
     }
