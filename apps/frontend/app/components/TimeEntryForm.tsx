@@ -120,7 +120,7 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl, projects }: 
             name="date"
             value={formData.date}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
@@ -137,7 +137,7 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl, projects }: 
               name="projectId"
               value={formData.projectId ?? ''}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+               className="w-full px-3 py-2 border border-gray-400 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700"
               required
             >
               {projects.map((project) => (
@@ -162,7 +162,7 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl, projects }: 
             min="0.25"
             max="24"
             step="0.25"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+             className="w-full px-3 py-2 border border-gray-400 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700"
             required
           />
         </div>
@@ -178,7 +178,7 @@ export default function TimeEntryForm({ onEntryCreated, apiBaseUrl, projects }: 
             onChange={handleChange}
             rows={4}
             placeholder="Describe the work you did..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+             className="w-full px-3 py-2 border border-gray-400 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700"
             required
           />
         </div>
