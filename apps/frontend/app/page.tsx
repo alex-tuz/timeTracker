@@ -1,83 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import TimeEntryForm from './components/TimeEntryForm';
 import TimeEntryHistory from './components/TimeEntryHistory';
-import axios from 'axios';
-
-interface TimeEntry {
-  id: number;
-  date: string;
-  projectId: number;
-  project: string;
-  hours: number;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Project {
-  id: number;
-  name: string;
-  createdAt: string;
-}
-
-const API_BASE_URL = 'http://localhost:3001/api';
+import { useApiCall } from '@/lib/hooks';
+import { API_BASE_URL } from '@/lib/constants';
+import type { TimeEntry, Project } from '@/lib/types';
 
 export default function Home() {
-  const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(false);
-  const [projectsError, setProjectsError] = useState<string | null>(null);
+  const {
+    data: entries,
+    loading,
+    error,
+    fetch: fetchEntries,
+  } = useApiCall<TimeEntry>(`${API_BASE_URL}/time-entries`);
 
-  const fetchEntries = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await axios.get(`${API_BASE_URL}/time-entries`);
-      setEntries(response.data);
-    } catch (err) {
-      setError('Failed to fetch time entries');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProjects = async () => {
-    try {
-      setProjectsLoading(true);
-      setProjectsError(null);
-      const response = await axios.get(`${API_BASE_URL}/projects`);
-      setProjects(response.data);
-    } catch (err) {
-      setProjectsError('Failed to load projects');
-      console.error(err);
-    } finally {
-      setProjectsLoading(false);
-    }
-  };
+  const {
+    data: projects,
+    loading: projectsLoading,
+    error: projectsError,
+    fetch: fetchProjects,
+  } = useApiCall<Project>(`${API_BASE_URL}/projects`);
 
   useEffect(() => {
     void fetchProjects();
     void fetchEntries();
-  }, []);
+  }, [fetchEntries, fetchProjects]);
 
-  const handleEntryCreated = async (newEntry: TimeEntry) => {
-    setEntries([newEntry, ...entries]);
+  const handleEntryCreated = (newEntry: TimeEntry) => {
+    fetchEntries();
   };
 
-  const handleEntryDeleted = async (id: number) => {
-    setEntries(entries.filter((entry) => entry.id !== id));
+  const handleEntryDeleted = (id: number) => {
+    fetchEntries();
   };
 
   return (
     <main className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-12">Mini Time Tracker</h1>
-        
+
         {error && (
           <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
@@ -102,7 +64,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          
+
           <div className="lg:col-span-2">
             <TimeEntryHistory
               entries={entries}
