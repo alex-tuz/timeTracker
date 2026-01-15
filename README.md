@@ -24,29 +24,42 @@ mini-time-tracker/
 ├── apps/
 │   ├── backend/                 # NestJS REST API
 │   │   ├── src/
+│   │   │   ├── projects/        # Projects module
+│   │   │   │   ├── create-project.dto.ts
+│   │   │   │   ├── projects.controller.ts
+│   │   │   │   ├── projects.service.ts
+│   │   │   │   ├── projects.module.ts
+│   │   │   │   └── project.interface.ts
 │   │   │   ├── time-entries/   # Time entry module
 │   │   │   │   ├── create-time-entry.dto.ts
 │   │   │   │   ├── time-entries.controller.ts
 │   │   │   │   ├── time-entries.service.ts
 │   │   │   │   ├── time-entries.module.ts
 │   │   │   │   └── time-entry.interface.ts
+│   │   │   ├── database.ts      # Shared DB setup & migrations
 │   │   │   ├── app.module.ts
 │   │   │   ├── app.service.ts
 │   │   │   └── main.ts
-│   │   ├── prisma/
-│   │   │   ├── schema.prisma
-│   │   │   └── migrations/
-│   │   ├── dist/               # Compiled JavaScript
+│   │   ├── data/
+│   │   │   └── dev.db           # SQLite database
 │   │   └── package.json
 │   │
 │   └── frontend/                # Next.js application
 │       ├── app/
 │       │   ├── components/
 │       │   │   ├── TimeEntryForm.tsx      # Form component
-│       │   │   └── TimeEntryHistory.tsx   # History display
+│       │   │   ├── TimeEntryHistory.tsx   # History display
+│       │   │   ├── TimeEntryItem.tsx      # Single entry item
+│       │   │   └── DayGroup.tsx           # Day grouping
 │       │   ├── layout.tsx
 │       │   ├── page.tsx                   # Main page
 │       │   └── globals.css
+│       ├── lib/
+│       │   ├── types.ts         # TypeScript interfaces
+│       │   ├── constants.ts      # App constants & config
+│       │   ├── hooks.ts         # Custom React hooks
+│       │   ├── utils.ts         # Utility functions
+│       │   └── styles.ts        # CSS constants
 │       ├── public/
 │       └── package.json
 │
@@ -61,24 +74,43 @@ mini-time-tracker/
 **REST API** running on `http://localhost:3001`
 
 **Modules**:
+- `ProjectsModule` - Manages project references
+  - **Controller** - Project CRUD endpoints
+  - **Service** - Database operations for projects
+  - **DTO** - Data validation with class-validator
+
 - `TimeEntriesModule` - Handles all time entry operations
   - **Controller** - REST endpoint handlers
-  - **Service** - Business logic and database operations
+  - **Service** - Business logic and database operations (includes 24h/day validation)
   - **DTO** - Data validation with class-validator
 
 **Database Schema**:
 ```
+projects
+├── id (INTEGER PRIMARY KEY)
+├── name (TEXT NOT NULL UNIQUE)
+└── createdAt (DATETIME)
+
 time_entry
 ├── id (INTEGER PRIMARY KEY)
-├── date (DATETIME)
-├── project (TEXT)
-├── hours (REAL)
-├── description (TEXT)
+├── date (DATETIME NOT NULL)
+├── project_id (INTEGER NOT NULL, FK → projects.id)
+├── hours (REAL NOT NULL)
+├── description (TEXT NOT NULL)
 ├── createdAt (DATETIME)
 └── updatedAt (DATETIME)
 ```
 
+**Default Projects** (auto-seeded on first run):
+- Viso Internal
+- Client A
+- Client B
+- Personal Development
+- Research
+
 **API Endpoints**:
+- `GET /api/projects` - Get all projects
+- `POST /api/projects` - Create new project
 - `POST /api/time-entries` - Create new time entry
 - `GET /api/time-entries` - Get all entries
 - `GET /api/time-entries/by-date?date=YYYY-MM-DD` - Filter by date
@@ -91,21 +123,32 @@ time_entry
 **Components**:
 - `TimeEntryForm` - Input form for new entries
   - Date picker (defaults to today)
-  - Project dropdown selection
+  - Project dropdown selection (fetched from backend)
   - Hours input (0.25-24 range)
   - Description textarea
   - Error/success feedback
+  - Validation for required fields
 
 - `TimeEntryHistory` - Display grouped entries
-  - Entries grouped by date
+  - Entries grouped by date with day components
   - Daily totals
   - Grand total across all entries
   - Delete functionality
 
-**State Management**:
+- `DayGroup` - Groups entries by day
+  - Renders day header with daily total
+  - Displays entries for that day
+
+- `TimeEntryItem` - Single entry component
+  - Project name, hours, description
+  - Delete button with loading state
+
+**State Management & Utilities**:
 - React hooks (useState, useEffect)
+- Custom hooks: `useApiCall()` (data fetching), `useDelete()` (deletion logic)
 - Axios for API communication
 - date-fns for date formatting
+- Utility functions for grouping, calculations, formatting
 
 ## Getting Started
 
