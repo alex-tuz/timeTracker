@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { db, initSchema } from '../database';
 import { CreateTimeEntryDto } from './create-time-entry.dto';
-import { TimeEntry } from './time-entry.interface';
+import type { TimeEntry } from './time-entry.interface';
+
+const MAX_HOURS_PER_DAY = 24;
+
+const MIDNIGHT = { hour: 0, minute: 0, second: 0, ms: 0 };
+const END_OF_DAY = { hour: 23, minute: 59, second: 59, ms: 999 };
 
 type DbRow = {
   id: number;
@@ -33,15 +38,15 @@ export class TimeEntriesService {
 
     // Parse date to normalize it (remove time component for comparison)
     const entryDate = new Date(date);
-    entryDate.setHours(0, 0, 0, 0);
+    entryDate.setHours(MIDNIGHT.hour, MIDNIGHT.minute, MIDNIGHT.second, MIDNIGHT.ms);
     const dateString = entryDate.toISOString();
 
     // Check total hours for the day
     const dayStart = new Date(entryDate);
-    dayStart.setHours(0, 0, 0, 0);
+    dayStart.setHours(MIDNIGHT.hour, MIDNIGHT.minute, MIDNIGHT.second, MIDNIGHT.ms);
 
     const dayEnd = new Date(entryDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    dayEnd.setHours(END_OF_DAY.hour, END_OF_DAY.minute, END_OF_DAY.second, END_OF_DAY.ms);
 
     const stmt = db.prepare(`
       SELECT SUM(hours) as total FROM time_entry 
@@ -53,9 +58,9 @@ export class TimeEntriesService {
       | undefined;
     const totalHours = (result?.total as number) || 0;
 
-    if (totalHours + hours > 24) {
+    if (totalHours + hours > MAX_HOURS_PER_DAY) {
       throw new Error(
-        `Cannot exceed 24 hours per day. Current: ${totalHours}h, Requested: ${hours}h`,
+        `Cannot exceed ${MAX_HOURS_PER_DAY} hours per day. Current: ${totalHours}h, Requested: ${hours}h`,
       );
     }
 
@@ -117,10 +122,10 @@ export class TimeEntriesService {
 
   findByDate(date: string): TimeEntry[] {
     const entryDate = new Date(date);
-    entryDate.setHours(0, 0, 0, 0);
+    entryDate.setHours(MIDNIGHT.hour, MIDNIGHT.minute, MIDNIGHT.second, MIDNIGHT.ms);
 
     const dayEnd = new Date(entryDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    dayEnd.setHours(END_OF_DAY.hour, END_OF_DAY.minute, END_OF_DAY.second, END_OF_DAY.ms);
 
     const stmt = db.prepare(`
       SELECT te.id, te.date, te.project_id, p.name AS project, te.hours, te.description, te.createdAt, te.updatedAt

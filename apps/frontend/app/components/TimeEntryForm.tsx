@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import { format } from 'date-fns';
 import type { TimeEntry, Project } from '@/lib/types';
-import { TAILWIND } from '@/lib/constants';
+import { TAILWIND, TIME_ENTRY } from '@/lib/constants';
 
 interface TimeEntryFormProps {
   onEntryCreated: (entry: TimeEntry) => void;
@@ -20,7 +20,7 @@ export default function TimeEntryForm({
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     projectId: projects[0]?.id ?? null,
-    hours: 1,
+    hours: TIME_ENTRY.DEFAULT_HOURS,
     description: '',
   });
 
@@ -68,12 +68,12 @@ export default function TimeEntryForm({
       setFormData({
         date: format(new Date(), 'yyyy-MM-dd'),
         projectId: projects[0]?.id ?? null,
-        hours: 1,
+        hours: TIME_ENTRY.DEFAULT_HOURS,
         description: '',
       });
 
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccess(false), TIME_ENTRY.SUCCESS_MESSAGE_DURATION);
     } catch (err) {
       const message =
         (err as AxiosError<{ message?: string }>)?.response?.data?.message ||
@@ -141,9 +141,9 @@ export default function TimeEntryForm({
             name="hours"
             value={formData.hours}
             onChange={handleChange}
-            min="0.25"
-            max="24"
-            step="0.25"
+            min={TIME_ENTRY.MIN_HOURS}
+            max={TIME_ENTRY.MAX_HOURS}
+            step={TIME_ENTRY.MIN_HOURS}
             className={TAILWIND.input}
             required
           />
@@ -158,7 +158,7 @@ export default function TimeEntryForm({
             name="description"
             value={formData.description}
             onChange={handleChange}
-            rows={4}
+            rows={TIME_ENTRY.TEXTAREA_ROWS}
             placeholder="Describe the work you did..."
             className={TAILWIND.input}
             required
