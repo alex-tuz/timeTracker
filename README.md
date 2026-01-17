@@ -161,7 +161,7 @@ time_entry
 
 1. **Clone or setup the project**
 ```bash
-cd mini-time-tracker
+cd timeTracker
 ```
 
 2. **Install dependencies** (monorepo workspace)
